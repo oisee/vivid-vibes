@@ -12,14 +12,25 @@
 
 Vivid Vibes is a demoscene engine written entirely in ABAP. It renders classic demo effects server-side and streams them to the browser via WebSockets (ABAP Push Channel). The browser renders vector primitives in real-time, synchronized to music.
 
+### Architecture
+
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   ABAP      │ --> │  WebSocket  │ --> │  Browser    │
-│   Server    │     │   (JSON)    │     │  (Canvas)   │
-└─────────────┘     └─────────────┘     └─────────────┘
-  Vector math         Streaming          Rendering
-  coordinates         primitives         + audio sync
+┌─────────────────────┐         ┌─────────────────────┐
+│       ABAP          │         │      Browser        │
+│   "Scene Engine"    │         │  "Video Processor"  │
+├─────────────────────┤  JSON   ├─────────────────────┤
+│ - Effect logic      │ ─────►  │ - Canvas 2D         │
+│ - 3D math           │ WebSocket│ - WebGL shaders    │
+│ - Scene transitions │         │ - Audio sync        │
+│ - Timeline/BPM sync │         │ - CRT post-FX       │
+└─────────────────────┘         └─────────────────────┘
+     Calculates                      Renders
+     what to draw                    the frames
 ```
+
+**ABAP** does all the heavy lifting: 3D transformations, effect calculations, scene orchestration, and beat synchronization. It outputs draw commands (lines, circles, polygons, text) as JSON.
+
+**JavaScript** (Canvas/WebGL) acts as a "video processor" - it receives the primitives and renders them to screen. It also handles audio playback, post-processing effects (CRT scanlines, glow), and WebGL shaders for GPU-accelerated effects.
 
 ---
 
