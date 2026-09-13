@@ -135,4 +135,15 @@ CLASS zcl_o4d_joydivision IMPLEMENTATION.
       |"pulse":{ lv_pulse },"amp_scale":{ lv_amp_scale },"bright_boost":{ lv_bright_boost },| &&
       |"lines":{ lines( rs_frame-lines ) },"t":{ lv_t }\}|.
   ENDMETHOD.
+  METHOD zif_o4d_effect~get_required_media.
+    " nothing to preload. ZCL_O4D_GALLERY is the effect that needs media,
+    " and shows the shape: a table of name/type pairs.
+  ENDMETHOD.
+
+  METHOD zif_o4d_effect~is_loopable.
+    " conservative default: only say true for an effect actually designed to
+    " run forever, the way ZCL_O4D_GALLERY does.
+    rv_loopable = abap_false.
+  ENDMETHOD.
+
 ENDCLASS.

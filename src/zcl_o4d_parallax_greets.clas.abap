@@ -275,4 +275,15 @@ CLASS ZCL_O4D_PARALLAX_GREETS IMPLEMENTATION.
       rs_frame-flash-r = 1. rs_frame-flash-g = 1. rs_frame-flash-b = '0.8'.
     ENDIF.
   ENDMETHOD.
+  METHOD zif_o4d_effect~get_required_media.
+    " nothing to preload. ZCL_O4D_GALLERY is the effect that needs media,
+    " and shows the shape: a table of name/type pairs.
+  ENDMETHOD.
+
+  METHOD zif_o4d_effect~is_loopable.
+    " conservative default: only say true for an effect actually designed to
+    " run forever, the way ZCL_O4D_GALLERY does.
+    rv_loopable = abap_false.
+  ENDMETHOD.
+
 ENDCLASS.
