@@ -166,4 +166,15 @@ CLASS ZCL_O4D_VOXEL_LANDSCAPE IMPLEMENTATION.
     DATA(lv_bi) = CONV i( nmin( val1 = 255 val2 = nmax( val1 = 0 val2 = lv_b * 255 ) ) ).
     rv_hex = |#{ lv_ri ALIGN = RIGHT WIDTH = 2 PAD = '0' }{ lv_gi ALIGN = RIGHT WIDTH = 2 PAD = '0' }{ lv_bi ALIGN = RIGHT WIDTH = 2 PAD = '0' }|.
   ENDMETHOD.
+  METHOD zif_o4d_effect~get_required_media.
+    " nothing to preload. ZCL_O4D_GALLERY is the effect that needs media,
+    " and shows the shape: a table of name/type pairs.
+  ENDMETHOD.
+
+  METHOD zif_o4d_effect~is_loopable.
+    " conservative default: only say true for an effect actually designed to
+    " run forever, the way ZCL_O4D_GALLERY does.
+    rv_loopable = abap_false.
+  ENDMETHOD.
+
 ENDCLASS.

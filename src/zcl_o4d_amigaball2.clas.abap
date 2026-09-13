@@ -267,4 +267,15 @@ CLASS ZCL_O4D_AMIGABALL2 IMPLEMENTATION.
     DATA(lv_v) = nmax( val1 = 0 val2 = nmin( val1 = 255 val2 = iv_i ) ).
     lv_hex = lv_v. rv = |{ lv_hex }|.
   ENDMETHOD.
+  METHOD zif_o4d_effect~get_required_media.
+    " nothing to preload. ZCL_O4D_GALLERY is the effect that needs media,
+    " and shows the shape: a table of name/type pairs.
+  ENDMETHOD.
+
+  METHOD zif_o4d_effect~is_loopable.
+    " conservative default: only say true for an effect actually designed to
+    " run forever, the way ZCL_O4D_GALLERY does.
+    rv_loopable = abap_false.
+  ENDMETHOD.
+
 ENDCLASS.

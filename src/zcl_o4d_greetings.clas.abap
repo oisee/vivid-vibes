@@ -116,4 +116,15 @@ CLASS ZCL_O4D_GREETINGS IMPLEMENTATION.
       |"center_y":{ lv_cy },"wave_amp":30,"wave_freq":0.03,| &&
       |"hue":{ lv_cur_hue },"font_size":20,"char_spacing":12\}|.
   ENDMETHOD.
+  METHOD zif_o4d_effect~get_required_media.
+    " nothing to preload. ZCL_O4D_GALLERY is the effect that needs media,
+    " and shows the shape: a table of name/type pairs.
+  ENDMETHOD.
+
+  METHOD zif_o4d_effect~is_loopable.
+    " conservative default: only say true for an effect actually designed to
+    " run forever, the way ZCL_O4D_GALLERY does.
+    rv_loopable = abap_false.
+  ENDMETHOD.
+
 ENDCLASS.

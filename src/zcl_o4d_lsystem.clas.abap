@@ -109,4 +109,15 @@ CLASS zcl_o4d_lsystem IMPLEMENTATION.
       x = lv_cx y = 20 text = |L-SYSTEM DEPTH { CONV i( lv_grow_frac ) }| color = '#ffffff' size = 14 align = 'center'
     ) TO rs_frame-texts.
   ENDMETHOD.
+  METHOD zif_o4d_effect~get_required_media.
+    " nothing to preload. ZCL_O4D_GALLERY is the effect that needs media,
+    " and shows the shape: a table of name/type pairs.
+  ENDMETHOD.
+
+  METHOD zif_o4d_effect~is_loopable.
+    " conservative default: only say true for an effect actually designed to
+    " run forever, the way ZCL_O4D_GALLERY does.
+    rv_loopable = abap_false.
+  ENDMETHOD.
+
 ENDCLASS.

@@ -192,4 +192,15 @@ CLASS ZCL_O4D_IGNITION IMPLEMENTATION.
     lv_rh = lv_ri. lv_gh = lv_gi. lv_bh = lv_bi.
     rv_hex = |#{ lv_rh }{ lv_gh }{ lv_bh }|.
   ENDMETHOD.
+  METHOD zif_o4d_effect~get_required_media.
+    " nothing to preload. ZCL_O4D_GALLERY is the effect that needs media,
+    " and shows the shape: a table of name/type pairs.
+  ENDMETHOD.
+
+  METHOD zif_o4d_effect~is_loopable.
+    " conservative default: only say true for an effect actually designed to
+    " run forever, the way ZCL_O4D_GALLERY does.
+    rv_loopable = abap_false.
+  ENDMETHOD.
+
 ENDCLASS.
