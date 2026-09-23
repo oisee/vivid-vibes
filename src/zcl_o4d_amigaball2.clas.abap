@@ -23,7 +23,7 @@ CLASS zcl_o4d_amigaball2 DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING iv_cycle_bars TYPE i.
 
   PRIVATE SECTION.
-    TYPES: BEGIN OF ty_tri_z, z TYPE f, tri TYPE zif_o4d_effect=>ty_triangle, END OF ty_tri_z.
+    TYPES: BEGIN OF ty_tri_z, z TYPE f, seq TYPE i, tri TYPE zif_o4d_effect=>ty_triangle, END OF ty_tri_z.
 
     DATA mv_cycle_bars TYPE i VALUE 8.
 
@@ -197,10 +197,10 @@ CLASS ZCL_O4D_AMIGABALL2 IMPLEMENTATION.
             DATA(lv_sx2) = lv_cx + lv_rx11 * lv_r * lv_sq_x + lv_ex. DATA(lv_sy2) = lv_cy + lv_y11 * lv_r * lv_sq_y + lv_ey.
             DATA(lv_sx3) = lv_cx + lv_rx01 * lv_r * lv_sq_x + lv_ex. DATA(lv_sy3) = lv_cy + lv_y01 * lv_r * lv_sq_y + lv_ey.
 
-            APPEND VALUE ty_tri_z( z = lv_z_avg tri = VALUE #(
+            APPEND VALUE ty_tri_z( z = lv_z_avg seq = lines( lt_tris ) + 1 tri = VALUE #(
               x1 = lv_sx0 y1 = lv_sy0 x2 = lv_sx1 y2 = lv_sy1 x3 = lv_sx2 y3 = lv_sy2 fill = lv_color )
             ) TO lt_tris.
-            APPEND VALUE ty_tri_z( z = lv_z_avg tri = VALUE #(
+            APPEND VALUE ty_tri_z( z = lv_z_avg seq = lines( lt_tris ) + 1 tri = VALUE #(
               x1 = lv_sx0 y1 = lv_sy0 x2 = lv_sx2 y2 = lv_sy2 x3 = lv_sx3 y3 = lv_sy3 fill = lv_color )
             ) TO lt_tris.
           ENDIF.
@@ -209,7 +209,7 @@ CLASS ZCL_O4D_AMIGABALL2 IMPLEMENTATION.
         lv_lat = lv_lat + 1.
       ENDWHILE.
 
-      SORT lt_tris BY z ASCENDING.
+      SORT lt_tris BY z ASCENDING seq ASCENDING.
       LOOP AT lt_tris INTO DATA(ls_t).
         APPEND ls_t-tri TO rs_frame-triangles.
       ENDLOOP.

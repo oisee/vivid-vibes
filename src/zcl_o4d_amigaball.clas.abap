@@ -2,7 +2,7 @@ CLASS zcl_o4d_amigaball DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PUBLIC SECTION.
     INTERFACES zif_o4d_effect.
   PRIVATE SECTION.
-    TYPES: BEGIN OF ty_tri_z, z TYPE f, tri TYPE zif_o4d_effect=>ty_triangle, END OF ty_tri_z.
+    TYPES: BEGIN OF ty_tri_z, z TYPE f, seq TYPE i, tri TYPE zif_o4d_effect=>ty_triangle, END OF ty_tri_z.
     CLASS-METHODS i2h IMPORTING iv_i TYPE i RETURNING VALUE(rv) TYPE string.
 ENDCLASS.
 
@@ -132,10 +132,10 @@ CLASS ZCL_O4D_AMIGABALL IMPLEMENTATION.
           DATA(lv_sx3) = lv_cx + lv_rx01 * lv_r * lv_sq_x. DATA(lv_sy3) = lv_cy + lv_y01 * lv_r * lv_sq_y.
 
           " Two triangles per quad
-          APPEND VALUE ty_tri_z( z = lv_z_avg tri = VALUE #(
+          APPEND VALUE ty_tri_z( z = lv_z_avg seq = lines( lt_tris ) + 1 tri = VALUE #(
                                                              x1 = lv_sx0 y1 = lv_sy0 x2 = lv_sx1 y2 = lv_sy1 x3 = lv_sx2 y3 = lv_sy2 fill = lv_color )
           ) TO lt_tris.
-          APPEND VALUE ty_tri_z( z = lv_z_avg tri = VALUE #(
+          APPEND VALUE ty_tri_z( z = lv_z_avg seq = lines( lt_tris ) + 1 tri = VALUE #(
                                                              x1 = lv_sx0 y1 = lv_sy0 x2 = lv_sx2 y2 = lv_sy2 x3 = lv_sx3 y3 = lv_sy3 fill = lv_color )
           ) TO lt_tris.
         ENDIF.
@@ -146,7 +146,7 @@ CLASS ZCL_O4D_AMIGABALL IMPLEMENTATION.
     ENDWHILE.
 
     " Sort back to front
-    SORT lt_tris BY z ASCENDING.
+    SORT lt_tris BY z ASCENDING seq ASCENDING.
 
     " Add triangles
     LOOP AT lt_tris INTO DATA(ls_t).
