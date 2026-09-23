@@ -4,6 +4,8 @@
 
 *Real-time demoscene effects running in SAP ABAP*
 
+**Play it in the browser: https://oisee.github.io/vivid-vibes/** (no SAP system: the ABAP compiled to JavaScript runs in the page, or frames recorded from it play back; see [tools/pages/README.md](tools/pages/README.md))
+
 [![Demo Video](./media/ZO4D_18_GLITCH.png)](https://youtu.be/4IAPLbqJ2Eo)
 
 > Click the image above to watch the demo in action

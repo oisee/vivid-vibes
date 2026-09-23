@@ -116,6 +116,11 @@ func main() {
 		}
 		step(h, s, mm, p.ID, -1, func() { h.HANDLE_JSON_CMD(s, mm, `{"cmd":"get_scenario"}`) })
 		n := p.Bars * 64 * fpt
+		if len(os.Args) > 1 { // a limit per part, for comparisons
+			var max int
+			fmt.Sscan(os.Args[1], &max)
+			n = min(n, max)
+		}
 		for i := 0; i < n; i++ {
 			cmd := fmt.Sprintf(`{"cmd":"frame","tick":%d,"sub":%d}`, i/fpt, i%fpt)
 			step(h, s, mm, p.ID, i, func() { h.HANDLE_JSON_CMD(s, mm, cmd) })

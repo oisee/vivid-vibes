@@ -76,6 +76,10 @@
   VV.recReady = fetch(recBase + "index.json", {cache: "no-cache"}).then(function (r) {
     if (!r.ok) throw new Error(r.status);
     return r.json();
+  }).then(function (j) {
+    // pages/rec/index.json is a placeholder until the frames are published
+    if (!j.parts) throw new Error("no recorded frames");
+    return j;
   }).then(function (j) { VV.recorded = j; changed(); return true; }, function () {
     VV.recorded = false;
     if (VV.mode === "recorded") setMode("live", "recorded frames are not published here");
@@ -227,14 +231,15 @@
   // The player asks for a frame every interval = seconds per tick / frames per
   // tick (24.7 ms at 152 BPM). Two measurements decide:
   //  1. a probe: a separate live worker renders PROBE.count frames of the
-  //     heaviest scene of the demo (julia_morph, 45 ms a frame in desktop
-  //     Chromium); a median above PROBE_LIMIT ms, or no answer in PROBE_WAIT
-  //     ms, means recorded;
+  //     heaviest scene of the demo (julia_morph, about 50 ms a frame in
+  //     desktop Chromium, where live still plays it at 18 fps); a median
+  //     above PROBE_LIMIT (4 intervals, ?probe-limit=<ms> overrides), or no
+  //     answer in PROBE_WAIT ms, means recorded;
   //  2. the first FIRST frames of the play itself: a median above the
   //     interval means recorded.
   var INTERVAL = 1000 * 1.5789473684210527 / 64;
   var PROBE = {demo: "main", tick: 104 * 64 + 16, count: 12};
-  var PROBE_LIMIT = 2.5 * INTERVAL;
+  var PROBE_LIMIT = Number(params.get("probe-limit")) || 4 * INTERVAL;
   var PROBE_WAIT = 4000;
   var FIRST = 64;
   var median = function (a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b.length ? b[b.length >> 1] : 0; };

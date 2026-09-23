@@ -3,7 +3,7 @@
 // open-steamgate. See tools/pages/README.md for the exact commits.
 //
 //   node tools/pages/build.mjs --osg <open-steamgate> --core <open-abap-core>/src --apc <open-abap-apc>/src
-//        [--work <dir>] [--only live|record|pack]
+//        [--work <dir>] [--only live|record|pack] [--rec-out <dir>] [--pure --max <frames>]
 //
 //   live    the demo's ABAP as plain JS (pages/live/), the players (pages/*.html)
 //   record  the Go build with sin/cos from glibc (-tags=libm, the build that
@@ -87,17 +87,20 @@ async function record() {
   writeFileSync(join(mod, "cmd", "o4drec", "zz_generated.go"), emitGo(p));
   writeFileSync(join(mod, "cmd", "o4drec", "main.go"), readFileSync(join(here, "o4drec.go.txt"), "utf8"));
   execFileSync("gofmt", ["-w", join(mod, "cmd", "o4drec")]);
-  const bin = join(work, "o4drec");
-  execFileSync("go", ["build", "-trimpath", "-tags=libm", "-ldflags=-s -w", "-o", bin, "./cmd/o4drec"],
-    {cwd: mod, stdio: "inherit", env: {...process.env, CGO_ENABLED: "1", GOPROXY: process.env.GOPROXY ?? "off"}});
-  const file = join(work, "frames.ndjson");
+  // --pure: gogen's default build (fdlibm sin/cos, the same as V8's), for
+  // comparing the live mode with Go; the recording itself is always libm
+  const pure = process.argv.includes("--pure");
+  const bin = join(work, pure ? "o4drec-pure" : "o4drec");
+  execFileSync("go", ["build", "-trimpath", `-tags=${pure ? "" : "libm"}`, "-ldflags=-s -w", "-o", bin, "./cmd/o4drec"],
+    {cwd: mod, stdio: "inherit", env: {...process.env, CGO_ENABLED: pure ? "0" : "1", GOPROXY: process.env.GOPROXY ?? "off"}});
+  const file = join(work, pure ? "frames-pure.ndjson" : "frames.ndjson");
   const t = performance.now();
   await new Promise((ok, fail) => {
-    const child = spawn(bin, [], {stdio: ["ignore", "pipe", "inherit"]});
+    const child = spawn(bin, arg("--max") ? [arg("--max")] : [], {stdio: ["ignore", "pipe", "inherit"]});
     child.stdout.pipe(createWriteStream(file));
     child.on("exit", (code) => (code === 0 ? ok() : fail(new Error(`o4drec exited ${code}`))));
   });
-  console.log(`recorded ${file} in ${((performance.now() - t) / 1000).toFixed(1)} s (osg ${osgCommit()}, -tags=libm)`);
+  console.log(`recorded ${file} in ${((performance.now() - t) / 1000).toFixed(1)} s (osg ${osgCommit()}, ${pure ? "pure Go" : "-tags=libm"})`);
 }
 
 /* ------------------------------------------------------------------ pack */
