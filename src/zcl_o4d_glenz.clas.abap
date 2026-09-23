@@ -14,7 +14,7 @@ CLASS zcl_o4d_glenz DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_v3, x TYPE f, y TYPE f, z TYPE f, END OF ty_v3.
     TYPES: BEGIN OF ty_face, v1 TYPE i, v2 TYPE i, v3 TYPE i, v4 TYPE i, END OF ty_face.
-    TYPES: BEGIN OF ty_tri_z, z TYPE f, tri TYPE zif_o4d_effect=>ty_triangle, END OF ty_tri_z.
+    TYPES: BEGIN OF ty_tri_z, z TYPE f, seq TYPE i, tri TYPE zif_o4d_effect=>ty_triangle, END OF ty_tri_z.
     DATA mv_count TYPE i.
     DATA mt_verts TYPE STANDARD TABLE OF ty_v3 WITH EMPTY KEY.
     DATA mt_faces TYPE STANDARD TABLE OF ty_face WITH EMPTY KEY.
@@ -112,7 +112,7 @@ CLASS zcl_o4d_glenz IMPLEMENTATION.
         DATA(ls_p1) = lt_proj[ ls_f-v1 ]. DATA(ls_p2) = lt_proj[ ls_f-v2 ]. DATA(ls_p3) = lt_proj[ ls_f-v3 ].
         DATA(lv_z_avg) = ( ls_p1-z + ls_p2-z + ls_p3-z ) / 3.
         DATA(lv_light) = 40 + CONV i( ( lv_z_avg + 1 ) * 30 ).
-        APPEND VALUE ty_tri_z( z = lv_z_avg tri = VALUE #(
+        APPEND VALUE ty_tri_z( z = lv_z_avg seq = lines( lt_all ) + 1 tri = VALUE #(
           x1 = ls_p1-x y1 = ls_p1-y x2 = ls_p2-x y2 = ls_p2-y x3 = ls_p3-x y3 = ls_p3-y
           fill = |hsla({ lv_hue }, 80%, { lv_light }%, 0.4)|
         ) ) TO lt_all.
@@ -121,7 +121,7 @@ CLASS zcl_o4d_glenz IMPLEMENTATION.
     ENDWHILE.
 
     " Sort back-to-front and add to frame
-    SORT lt_all BY z ASCENDING.
+    SORT lt_all BY z ASCENDING seq ASCENDING.
     LOOP AT lt_all INTO DATA(ls_t).
       APPEND ls_t-tri TO rs_frame-triangles.
     ENDLOOP.

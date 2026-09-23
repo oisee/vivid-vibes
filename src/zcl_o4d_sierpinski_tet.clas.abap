@@ -292,6 +292,7 @@ CLASS zcl_o4d_sierpinski_tet IMPLEMENTATION.
              x2    TYPE f, y2 TYPE f,
              x3    TYPE f, y3 TYPE f,
              avg_z TYPE f,
+             seq   TYPE i,
              hue   TYPE i,
            END OF ty_proj_face.
     DATA lt_proj TYPE STANDARD TABLE OF ty_proj_face WITH EMPTY KEY.
@@ -335,12 +336,13 @@ CLASS zcl_o4d_sierpinski_tet IMPLEMENTATION.
         x2 = lv_px2 y2 = lv_py2
         x3 = lv_px3 y3 = lv_py3
         avg_z = lv_avg_z
+        seq = lines( lt_proj ) + 1
         hue = lv_hue
       ) TO lt_proj.
     ENDLOOP.
 
     " Sort by depth (back to front = ascending avg_z)
-    SORT lt_proj BY avg_z ASCENDING.
+    SORT lt_proj BY avg_z ASCENDING seq ASCENDING.
 
     " Render sorted triangles
     LOOP AT lt_proj INTO DATA(ls_p).

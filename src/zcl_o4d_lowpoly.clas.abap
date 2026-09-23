@@ -2,7 +2,7 @@ CLASS zcl_o4d_lowpoly DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PUBLIC SECTION.
     INTERFACES zif_o4d_effect.
   PRIVATE SECTION.
-    TYPES: BEGIN OF ty_tri_z, z TYPE f, tri TYPE zif_o4d_effect=>ty_triangle, END OF ty_tri_z.
+    TYPES: BEGIN OF ty_tri_z, z TYPE f, seq TYPE i, tri TYPE zif_o4d_effect=>ty_triangle, END OF ty_tri_z.
     CLASS-METHODS:
       get_height IMPORTING iv_x TYPE f iv_z TYPE f RETURNING VALUE(rv_h) TYPE f,
       hsv_hex IMPORTING iv_h TYPE f iv_s TYPE f iv_v TYPE f RETURNING VALUE(rv) TYPE string,
@@ -72,10 +72,10 @@ CLASS zcl_o4d_lowpoly IMPLEMENTATION.
 
         " Two triangles per quad
         DATA(lv_zavg) = ( lv_zd0 + lv_zd1 ) / 2.
-        APPEND VALUE ty_tri_z( z = lv_zavg tri = VALUE #(
+        APPEND VALUE ty_tri_z( z = lv_zavg seq = lines( lt_tris ) + 1 tri = VALUE #(
           x1 = lv_sx0 y1 = lv_sy0 x2 = lv_sx1 y2 = lv_sy1 x3 = lv_sx2 y3 = lv_sy2 fill = lv_color )
         ) TO lt_tris.
-        APPEND VALUE ty_tri_z( z = lv_zavg tri = VALUE #(
+        APPEND VALUE ty_tri_z( z = lv_zavg seq = lines( lt_tris ) + 1 tri = VALUE #(
           x1 = lv_sx0 y1 = lv_sy0 x2 = lv_sx2 y2 = lv_sy2 x3 = lv_sx3 y3 = lv_sy3 fill = lv_color )
         ) TO lt_tris.
 
@@ -85,7 +85,7 @@ CLASS zcl_o4d_lowpoly IMPLEMENTATION.
     ENDWHILE.
 
     " Sort back to front (higher z = further)
-    SORT lt_tris BY z DESCENDING.
+    SORT lt_tris BY z DESCENDING seq ASCENDING.
 
     " Add triangles
     LOOP AT lt_tris INTO DATA(ls_t).

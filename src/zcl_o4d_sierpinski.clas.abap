@@ -63,7 +63,7 @@ CLASS ZCL_O4D_SIERPINSKI IMPLEMENTATION.
 
   METHOD zif_o4d_effect~render_frame.
     TYPES: BEGIN OF ty_cube, cx TYPE f, cy TYPE f, cz TYPE f, size TYPE f, depth TYPE i, END OF ty_cube.
-    TYPES: BEGIN OF ty_proj_face, z TYPE f, tri1 TYPE zif_o4d_effect=>ty_triangle, tri2 TYPE zif_o4d_effect=>ty_triangle, END OF ty_proj_face.
+    TYPES: BEGIN OF ty_proj_face, z TYPE f, seq TYPE i, tri1 TYPE zif_o4d_effect=>ty_triangle, tri2 TYPE zif_o4d_effect=>ty_triangle, END OF ty_proj_face.
 
     DATA lt_cubes TYPE STANDARD TABLE OF ty_cube WITH EMPTY KEY.
     DATA lt_next TYPE STANDARD TABLE OF ty_cube WITH EMPTY KEY.
@@ -178,13 +178,14 @@ CLASS ZCL_O4D_SIERPINSKI IMPLEMENTATION.
 
       APPEND VALUE ty_proj_face(
         z = lv_avgz
+        seq = lines( lt_proj ) + 1
         tri1 = VALUE #( x1 = lv_sx1 y1 = lv_sy1 x2 = lv_sx2 y2 = lv_sy2 x3 = lv_sx3 y3 = lv_sy3 fill = lv_col )
         tri2 = VALUE #( x1 = lv_sx1 y1 = lv_sy1 x2 = lv_sx3 y2 = lv_sy3 x3 = lv_sx4 y3 = lv_sy4 fill = lv_col )
       ) TO lt_proj.
     ENDLOOP.
 
     " Z-sort for correct depth rendering
-    SORT lt_proj BY z DESCENDING . "ASCENDING.
+    SORT lt_proj BY z DESCENDING seq ASCENDING.
 
     LOOP AT lt_proj INTO DATA(ls_p).
       APPEND ls_p-tri1 TO rs_frame-triangles.
