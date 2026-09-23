@@ -1,0 +1,59 @@
+# Publishes pages/ to GitHub Pages: the demo playing in the browser, its ABAP
+# compiled to JS (live) or frames recorded from the Go build (recorded).
+# pages/ is generated outside this repository's CI (tools/pages/README.md);
+# this workflow only assembles and deploys it. Needs Pages enabled with
+# "GitHub Actions" as the source.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pages/**"
+      - "src/*.w3mi.*"
+      - "tools/pages/site.sh"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The recorded frames (about 145 MB) are too large for main's history.
+      # When a branch recorded-frames holds them (index.json and main/*.gz at
+      # its root), they become rec/; without it the page offers live only.
+      - name: Recorded frames
+        run: |
+          if git ls-remote --exit-code --heads origin recorded-frames > /dev/null; then
+            git fetch --depth 1 origin recorded-frames
+            mkdir -p "$RUNNER_TEMP/rec"
+            git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/rec"
+            echo "REC=$RUNNER_TEMP/rec" >> "$GITHUB_ENV"
+          else
+            echo "no branch recorded-frames: live mode only"
+          fi
+      - name: Assemble the site
+        run: tools/pages/site.sh _site ${REC:-}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
