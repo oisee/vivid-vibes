@@ -1,0 +1,7 @@
+{
+  "generator": "tools/pages/build.mjs",
+  "osg": "98d4d1cd9b5ae4f8460590c85fa7592608e41f99",
+  "gogen": "tools/gogen (branch spike/go-backend)",
+  "classes": 83,
+  "source": "9f45fe0b00c537643ff49c5ddf86838a42e130a0"
+}

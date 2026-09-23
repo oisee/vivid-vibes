@@ -1,0 +1,125 @@
+// Recorder for the recorded mode of the Pages build: the ABAP of the demo,
+// compiled to Go by gogen (zz_generated.go beside this file), driven the way
+// the megademo player drives it over APC, one fresh handler for everything:
+// ON_START, get_megademo, then per part load_demo, get_scenario and every
+// {"cmd":"frame","tick":t,"sub":s} of the part in order. Every text the
+// handler SENDs is written to stdout as one JSON line {"part","i","text"} or,
+// for a dialog step that dumped, {"part","i","dump"}.
+//
+// Built by tools/pages/build.mjs with -tags=libm (sin and cos from glibc, the
+// build that equals A4H frame for frame). Not meant to be run by hand.
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"os"
+	"regexp"
+
+	"osg/gogen/abap"
+)
+
+type message struct{ text string }
+
+func (m *message) IF_APC_WSP_MESSAGE__GET_MESSAGE_TYPE(s *abap.Session) int32 { return 1 }
+func (m *message) IF_APC_WSP_MESSAGE__GET_BINARY(s *abap.Session) string      { return m.text }
+func (m *message) IF_APC_WSP_MESSAGE__SET_BINARY(s *abap.Session, v string)   { m.text = v }
+func (m *message) IF_APC_WSP_MESSAGE__GET_TEXT(s *abap.Session) string        { return m.text }
+func (m *message) IF_APC_WSP_MESSAGE__SET_TEXT(s *abap.Session, v string)     { m.text = v }
+
+type manager struct{ sent []string }
+
+func (mm *manager) IF_APC_WSP_MESSAGE_MANAGER__CREATE_MESSAGE(s *abap.Session) IF_APC_WSP_MESSAGE {
+	return &message{}
+}
+func (mm *manager) IF_APC_WSP_MESSAGE_MANAGER__SEND(s *abap.Session, m IF_APC_WSP_MESSAGE) {
+	mm.sent = append(mm.sent, m.IF_APC_WSP_MESSAGE__GET_TEXT(s))
+}
+func (mm *manager) IF_APC_WSP_MESSAGE_MANAGER__SET_SEND_MODE(s *abap.Session, mode int32) {}
+
+type context_ struct{}
+
+func (c *context_) IF_APC_WSP_SERVER_CONTEXT__GET_INITIAL_REQUEST(s *abap.Session) IF_APC_WSP_INITIAL_REQUEST {
+	return nil
+}
+func (c *context_) IF_APC_WSP_SERVER_CONTEXT__GET_BINDING_MANAGER(s *abap.Session) IF_APC_WSP_BINDING_MANAGER {
+	return nil
+}
+func (c *context_) IF_APC_WSP_SERVER_CONTEXT__GET_CONNECTION_ID(s *abap.Session) string { return "1" }
+func (c *context_) IF_APC_WSP_SERVER_CONTEXT__GET_CONNECTION_ATTACH_HANDLE(s *abap.Session, sec int32) string {
+	return ""
+}
+func (c *context_) IF_APC_WSP_SERVER_CONTEXT_BASE__GET_INITIAL_REQUEST(s *abap.Session) IF_APC_WSP_INITIAL_REQUEST {
+	return nil
+}
+func (c *context_) IF_APC_WSP_SERVER_CONTEXT_BASE__GET_BINDING_MANAGER(s *abap.Session) IF_APC_WSP_BINDING_MANAGER {
+	return nil
+}
+func (c *context_) IF_APC_WSP_SERVER_CONTEXT_BASE__GET_CONNECTION_ID(s *abap.Session) string {
+	return "1"
+}
+
+type line struct {
+	Part string `json:"part"`
+	I    int    `json:"i"`
+	Text string `json:"text,omitempty"`
+	Dump string `json:"dump,omitempty"`
+}
+
+var out = bufio.NewWriterSize(os.Stdout, 1<<20)
+var enc = json.NewEncoder(out)
+
+// step runs one dialog step; a dump ends the step, as on a system
+func step(h *ZCL_O4D_APC_HANDLER, s *abap.Session, mm *manager, part string, i int, f func()) {
+	mm.sent = mm.sent[:0]
+	dump := ""
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				dump = fmt.Sprint(r)
+			}
+		}()
+		f()
+	}()
+	for _, t := range mm.sent {
+		enc.Encode(line{Part: part, I: i, Text: t})
+	}
+	if dump != "" {
+		enc.Encode(line{Part: part, I: i, Dump: dump})
+	}
+}
+
+func main() {
+	s := &abap.Session{}
+	mm := &manager{}
+	h := New_ZCL_O4D_APC_HANDLER(s)
+	step(h, s, mm, "", -1, func() { h.IF_APC_WSP_EXTENSION__ON_START(s, &context_{}, mm) })
+	step(h, s, mm, "", -1, func() { h.HANDLE_JSON_CMD(s, mm, `{"cmd":"get_megademo"}`) })
+	var mega struct {
+		Parts []struct {
+			ID   string `json:"id"`
+			Bars int    `json:"bars"`
+		} `json:"parts"`
+	}
+	for _, t := range mm.sent {
+		json.Unmarshal([]byte(t), &mega)
+	}
+	fptRe := regexp.MustCompile(`"fpt":(\d+)`)
+	for _, p := range mega.Parts {
+		step(h, s, mm, p.ID, -1, func() { h.HANDLE_JSON_CMD(s, mm, `{"cmd":"load_demo","demo":"`+p.ID+`"}`) })
+		fpt := 1
+		for _, t := range mm.sent {
+			if m := fptRe.FindStringSubmatch(t); m != nil {
+				fmt.Sscan(m[1], &fpt)
+			}
+		}
+		step(h, s, mm, p.ID, -1, func() { h.HANDLE_JSON_CMD(s, mm, `{"cmd":"get_scenario"}`) })
+		n := p.Bars * 64 * fpt
+		for i := 0; i < n; i++ {
+			cmd := fmt.Sprintf(`{"cmd":"frame","tick":%d,"sub":%d}`, i/fpt, i%fpt)
+			step(h, s, mm, p.ID, i, func() { h.HANDLE_JSON_CMD(s, mm, cmd) })
+		}
+	}
+	out.Flush()
+}
