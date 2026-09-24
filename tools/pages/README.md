@@ -40,26 +40,40 @@ worker slower than the music drops frames instead of falling behind it.
 | | size | where |
 | --- | ---: | --- |
 | `pages/live/` (JS from gogen) | 848 KB | this repository |
-| players + shim + workers | 110 KB | this repository |
+| players + shim + workers + fzstd | 148 KB | this repository |
 | media (3 MP3, 25 PNG, from `src/*.w3mi.data.*`) | 11.9 MB | copied from `src/` by `tools/pages/site.sh` when the site is assembled |
-| recorded frames | **144.9 MB** | **not in this repository**: branch `recorded-frames`, when it exists |
+| recorded frames | **82.4 MB** | **not in this repository**: branch `recorded-frames`, when it exists |
 
 The recorded frames, measured (main part, 7680 frames at 40.5 fps):
-1277 MB of JSON; 144.9 MB as shipped (per chunk the smaller of gzip over the
-text or gzip over a token delta against the previous frame, `pages/vv/rec-codec.js`,
-decoded with `DecompressionStream`). Alternatives measured on the same data:
-gzip alone 159 MB, brotli (q9, 16 MB window) 125 MB, token delta + brotli 142
-MB. Most of it is four scenes whose frames are thousands of 17-digit floats
-that change every frame: quat_julia 50.7 MB, sierpinski 36.1 MB, rotozoom
-14.0 MB, julia_morph 13.6 MB. The largest chunk is 7.1 MB.
+1277 MB of JSON; **82.4 MB as shipped** (format vv-rec-2, `pages/vv/rec-codec.js`):
+per chunk, every number is taken out of the text into a column per context
+(the six bytes before it, `"x":`, `,"y":`, `hsl(`), the rest of the text is
+left as a skeleton, and the whole is compressed with zstd (level 19, 128 MB
+long-distance window). The page decodes it with fzstd 0.1.1 (MIT, vendored
+unchanged as `pages/vv/fzstd.js`); numbers go back as the digits they were
+written with, so every frame is byte-identical to the recording (checked on
+all 16 128 frames, by the packer and again with fzstd). The largest chunk is
+5.0 MB; decoding the slowest one in headless Chromium takes about 400 ms
+against the 1579 ms it plays. The page still reads vv-rec-1 (gzip).
 
-Per scene (MB): sales_dance 0.10, ignition 0.44, ignite_emit 0.35,
-copperbars 0.36, plasma 0.16, twistzoomer 2.78, mountains_oops 2.08,
-rotozoom 13.98, voxel_landscape 5.65, rotozoom_plasma 6.02, tesseract 0.12,
-cell24 0.13, cell16 0.01, cell120 0.56, amiga_ball 0.93, amiga_ball_2 0.49,
-glitch 0.03, sierpinski 36.14, neon_city 3.98, joydivision 0.34,
-sierpinski_tet 2.37, quat_julia 50.69, sdf_blobs 0.33, torus_3d 0.33,
-julia_morph 13.57, constellation 2.94.
+Measured on a third of the main part (every third chunk, 2560 frames, 371 MB
+of JSON), before choosing: vv-rec-1 (gzip over text or a token delta) 41.8 MB;
+the text with zstd -19 --long 28.2 MB, with xz -9e 24.9 MB; numbers in
+columns with zstd -19 --long (vv-rec-2) 22.7 MB. xz over the columns was
+about 5% smaller again, but its decoder is WebAssembly and slower.
+Floats as float64 binary compress worse than their digits (they are 17
+significant digits that change every frame and do not repeat between frames),
+a delta against the previous frame at the same position is worse too, and
+zstd level 22 gains nothing over 19. The 17-digit floats are the floor:
+quat_julia (36.8 MB) and sierpinski (20.4 MB) are two thirds of the total.
+
+Per scene (MB): sales_dance 0.08, ignition 0.33, ignite_emit 0.27,
+copperbars 0.07, plasma 0.12, twistzoomer 1.77, mountains_oops 1.64,
+rotozoom 3.96, voxel_landscape 4.02, rotozoom_plasma 2.37, tesseract 0.08,
+cell24 0.09, cell16 0.01, cell120 0.46, amiga_ball 0.45, amiga_ball_2 0.28,
+glitch 0.02, sierpinski 20.38, neon_city 2.96, joydivision 0.21,
+sierpinski_tet 1.93, quat_julia 36.78, sdf_blobs 0.27, torus_3d 0.27,
+julia_morph 1.24, constellation 2.28.
 
 That is too much for `main`'s history, so `pages/rec/index.json` is a
 placeholder and the page offers live only. To publish them, put the output of
@@ -101,7 +115,7 @@ What the committed `pages/` was built from:
 | open-abap-apc (`github.com/oisee/open-abap-apc`) | `3cb371b641de5c12ee948b45b026cd92ed6ebafa` |
 | this repository's `src/` | the commit named in `pages/BUILD.json` |
 
-Node 22 or later with open-steamgate's `npm ci` done (gogen uses its
+Node 22.15 or later (zstd in `node:zlib`, for the packer) with open-steamgate's `npm ci` done (gogen uses its
 `@abaplint/core` and `@abaplint/transpiler`), and for the recording Go 1.26
 with cgo.
 

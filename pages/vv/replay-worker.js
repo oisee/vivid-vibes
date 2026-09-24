@@ -5,13 +5,16 @@
 // picture in step with the music. Frames come in chunks of one bar
 // (rec-codec.js), fetched when first needed and two ahead; a frame whose
 // chunk is still on its way is not answered, as a slow server would not.
-import {decodeChunk} from "./rec-codec.js";
+// A chunk is zstd (vv-rec-2, decoded by the vendored fzstd.js) or gzip
+// (vv-rec-1, DecompressionStream); the bytes say which.
+import {decodeChunk, decodeChunk2} from "./rec-codec.js";
+import {decompress as unzstd} from "./fzstd.js";
 
 let base = "";
 let index = null;
 let demo = "main";
 let mode = "viewer";
-const chunks = new Map(); // file -> {frames} | Promise
+const chunks = new Map(); // file -> {first, n, frame(k)} | Promise
 let last = 0;
 
 const send = (text) => postMessage({op: "msg", text});
@@ -36,13 +39,20 @@ function load(c) {
   got = fetch(base + c.file).then((r) => {
     if (!r.ok) throw new Error(`${c.file}: ${r.status}`);
     return r.arrayBuffer();
-  }).then((buf) => {
-    // gzip, unless a server already undid it with a Content-Encoding
+  }).then(async (buf) => {
     const b = new Uint8Array(buf);
-    if (b[0] !== 0x1f || b[1] !== 0x8b) return new TextDecoder().decode(b);
-    return new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
-  }).then((text) => {
-    const v = decodeChunk(text);
+    const t0 = performance.now();
+    let v;
+    if (b[0] === 0x28 && b[1] === 0xb5 && b[2] === 0x2f && b[3] === 0xfd) v = decodeChunk2(unzstd(b));
+    else if (b[0] === 0x76 && b[1] === 0x76 && b[2] === 0x32) v = decodeChunk2(b); // a server undid it
+    else {
+      // vv-rec-1: gzip, unless a server already undid it with a Content-Encoding
+      const text = b[0] !== 0x1f || b[1] !== 0x8b ? new TextDecoder().decode(b)
+        : await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+      const {first, frames} = decodeChunk(text);
+      v = {first, n: frames.length, frame: (k) => frames[k] ?? null};
+    }
+    postMessage({op: "chunk", file: c.file, bytes: b.length, ms: performance.now() - t0});
     chunks.set(c.file, v);
     return v;
   }, (e) => { chunks.delete(c.file); postMessage({op: "dump", text: String(e.message ?? e)}); throw e; });
@@ -59,10 +69,10 @@ function frameAt(i, wait) {
   const got = chunks.get(at.c.file);
   if (got && !(got instanceof Promise)) {
     if (at.k !== last) { last = at.k; postMessage({op: "status", text: `${at.c.scene}, bar ${Math.floor(i / 64 / part().fpt)}`}); }
-    return got.frames[i - got.first];
+    return got.frame(i - got.first);
   }
   const p = load(at.c);
-  return wait ? p.then((v) => v.frames[i - v.first]) : null;
+  return wait ? p.then((v) => v.frame(i - v.first)) : null;
 }
 
 async function handle(text) {

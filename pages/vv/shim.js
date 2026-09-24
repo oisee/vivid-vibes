@@ -163,6 +163,9 @@
       } else if (d.op === "status") {
         VV.status = d.text;
         changed();
+      } else if (d.op === "chunk") {
+        // a chunk of recorded frames decoded: kept for tools/pages/check.mjs
+        (VV.chunks = VV.chunks || []).push({file: d.file, bytes: d.bytes, ms: d.ms});
       }
     };
     w.onerror = function (e) {
