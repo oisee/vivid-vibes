@@ -29,8 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The recorded frames (about 145 MB) are too large for main's history.
-      # When a branch recorded-frames holds them (index.json and main/*.gz at
+      # The recorded frames (about 82 MB) are too large for main's history.
+      # When a branch recorded-frames holds them (index.json and main/*.zst at
       # its root), they become rec/; without it the page offers live only.
       - name: Recorded frames
         run: |

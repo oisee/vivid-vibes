@@ -64,6 +64,14 @@ async function play(mode) {
     const n = await page.evaluate((e) => window.__n[e] || 0, effect);
     ok(n >= 20, `${mode}: ${effect} (bar ${bar}): ${n} frames in 2.5 s`);
   }
+  if (mode === "recorded") {
+    // decoding a chunk (fetch not counted) must stay well under its play time
+    const cs = await page.evaluate(() => VV.chunks || []);
+    const ms = cs.map((c) => c.ms).sort((a, b) => a - b);
+    const top = cs.reduce((a, c) => (c.ms > a.ms ? c : a), {ms: 0});
+    console.log(`     ${cs.length} chunks decoded, median ${ms[ms.length >> 1]?.toFixed(0)} ms, slowest ${top.file} ${top.ms.toFixed(0)} ms (${(top.bytes / 1e6).toFixed(2)} MB)`);
+    ok(cs.length > 0 && top.ms < BAR * 1000 / 2, `recorded: every chunk decoded in under half its play time (${top.ms.toFixed(0)} ms < ${(BAR * 500).toFixed(0)} ms)`);
+  }
   await page.screenshot({path: join(arg("--shots", tmpdir()), `vv-check-${mode}.png`)});
   ok(await page.evaluate(() => VV.mode) === mode, `${mode}: still ${mode} at the end`);
   ok(errors.length === 0, `${mode}: no console errors, page errors or failed requests${errors.length ? `: ${errors.slice(0, 5).join(" | ")}` : ""}`);

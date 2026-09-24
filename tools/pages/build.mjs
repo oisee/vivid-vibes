@@ -9,9 +9,9 @@
 //   record  the Go build with sin/cos from glibc (-tags=libm, the build that
 //           equals A4H) plays every frame of every part into <work>/frames.ndjson
 //   pack    <work>/frames.ndjson -> --rec-out (default <work>/rec): chunks per scene,
-//           token delta or text, gzip; see pages/vv/rec-codec.js
+//           numbers split into columns, zstd (vv-rec-2); see pages/vv/rec-codec.js
 //
-// Needs Node >= 22 and, for record, Go >= 1.26 with cgo and a C compiler.
+// Needs Node >= 22.15 (zstd in node:zlib) and, for record, Go >= 1.26 with cgo and a C compiler.
 import {execFileSync, spawn} from "node:child_process";
 import {cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync} from "node:fs";
 import {dirname, join, resolve} from "node:path";
@@ -104,7 +104,7 @@ async function record() {
 }
 
 /* ------------------------------------------------------------------ pack */
-// The packed frames are about 120-160 MB (tools/pages/README.md), too much
+// The packed frames are about 100 MB (tools/pages/README.md), too much
 // for this repository's history: they go to --rec-out (default <work>/rec),
 // and the Pages workflow takes them from the branch named there.
 async function packFrames() {
